@@ -31,7 +31,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Principle I: Solution keeps design simple, avoids speculative complexity,
+  and documents any required complexity tradeoff.
+- [ ] Principle II: Coding style plan enforces naming, import organization,
+  linting, and formatting consistency.
+- [ ] Principle III: Test-first approach is defined with failing-first tests,
+  required unit/integration coverage for changed behavior, and coverage
+  impact plan (target >= 80%).
+- [ ] Principle IV: UI impact is assessed for theme compatibility,
+  accessibility, responsive behavior, and destructive-action confirmation.
+- [ ] Principle V: Frontend/backend contract impact is identified; coordinated
+  updates and contract verification tests are included when needed.
 
 ## Project Structure
 

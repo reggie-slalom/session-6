@@ -100,6 +100,20 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+## Constitution Alignment *(mandatory)*
+
+<!--
+  ACTION REQUIRED: Confirm how this feature complies with constitution
+  principles. If any principle cannot be fully met, document the specific
+  exception and why it is necessary.
+-->
+
+- **Simplicity and SRP**: [How the design remains simple and responsibilities are bounded]
+- **Code Style Consistency**: [How naming, imports, and lint/format checks are preserved]
+- **Test-First Quality Gates**: [Which tests will be written first and how coverage is protected]
+- **UX Accessibility and Theming**: [How UI consistency, accessibility, and theme support are maintained]
+- **API Contract Discipline**: [How frontend/backend contracts are preserved or coordinated]
+
 ## Success Criteria *(mandatory)*
 
 <!--
