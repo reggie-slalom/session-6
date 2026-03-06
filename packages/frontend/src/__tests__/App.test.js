@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
 import App from '../App';
@@ -231,5 +231,31 @@ describe('App Component', () => {
     const themToggleAfter = screen.getByRole('button', { name: /Switch to light mode/ });
     fireEvent.click(themToggleAfter);
     expect(localStorage.getItem('todoAppTheme')).toBe('light');
+  });
+
+  test('refreshes todo list after local midnight timer fires', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-06T23:59:30'));
+
+    const { unmount } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Learn React')).toBeInTheDocument();
+    });
+
+    const fetchSpy = jest.spyOn(global, 'fetch');
+
+    act(() => {
+      jest.advanceTimersByTime(31 * 1000);
+    });
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith('/api/todos');
+    });
+
+    unmount();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    fetchSpy.mockRestore();
   });
 });

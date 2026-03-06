@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const Database = require('better-sqlite3');
+const { addOverdueField, toLocalDateKey } = require('./services/todoService');
 
 // Initialize express app
 const app = express();
@@ -44,7 +45,8 @@ console.log('In-memory database initialized with sample todos');
 app.get('/api/todos', (req, res) => {
   try {
     const todos = db.prepare('SELECT * FROM todos ORDER BY createdAt DESC').all();
-    res.json(todos);
+    const todayKey = toLocalDateKey();
+    res.json(todos.map((todo) => addOverdueField(todo, todayKey)));
   } catch (error) {
     console.error('Error fetching todos:', error);
     res.status(500).json({ error: 'Failed to fetch todos' });

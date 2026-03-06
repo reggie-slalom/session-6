@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TodoForm from './components/TodoForm';
 import TodoList from './components/TodoList';
 import ThemeToggle from './components/ThemeToggle';
@@ -28,12 +28,7 @@ function App() {
     localStorage.setItem('todoAppTheme', theme);
   }, [theme]);
 
-  // Fetch todos on mount
-  useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,12 +40,46 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch todos on mount
+  useEffect(() => {
+    fetchTodos();
+  }, [fetchTodos]);
+
+  useEffect(() => {
+    let timerId;
+    let disposed = false;
+
+    const scheduleNextMidnightRefresh = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = Math.max(1000, nextMidnight.getTime() - now.getTime());
+
+      timerId = window.setTimeout(() => {
+        fetchTodos().finally(() => {
+          if (!disposed) {
+            scheduleNextMidnightRefresh();
+          }
+        });
+      }, delay);
+    };
+
+    scheduleNextMidnightRefresh();
+
+    return () => {
+      disposed = true;
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, [fetchTodos]);
 
   const handleCreateTodo = async (title, dueDate) => {
     try {
       const newTodo = await TodoService.createTodo(title, dueDate);
-      setTodos([newTodo, ...todos]);
+      setTodos((currentTodos) => [newTodo, ...currentTodos]);
       setError(null);
     } catch (err) {
       console.error('Error creating todo:', err);
@@ -62,7 +91,7 @@ function App() {
   const handleToggleTodo = async (todoId) => {
     try {
       const updatedTodo = await TodoService.toggleTodoStatus(todoId);
-      setTodos(todos.map(todo => (todo.id === todoId ? updatedTodo : todo)));
+      setTodos((currentTodos) => currentTodos.map((todo) => (todo.id === todoId ? updatedTodo : todo)));
       setError(null);
     } catch (err) {
       console.error('Error toggling todo:', err);
@@ -73,7 +102,7 @@ function App() {
   const handleEditTodo = async (todoId, title, dueDate) => {
     try {
       const updatedTodo = await TodoService.updateTodo(todoId, title, dueDate);
-      setTodos(todos.map(todo => (todo.id === todoId ? updatedTodo : todo)));
+      setTodos((currentTodos) => currentTodos.map((todo) => (todo.id === todoId ? updatedTodo : todo)));
       setError(null);
     } catch (err) {
       console.error('Error updating todo:', err);
@@ -91,7 +120,7 @@ function App() {
     try {
       setIsDeleting(true);
       await TodoService.deleteTodo(deletingTodoId);
-      setTodos(todos.filter(todo => todo.id !== deletingTodoId));
+      setTodos((currentTodos) => currentTodos.filter((todo) => todo.id !== deletingTodoId));
       setShowDeleteConfirm(false);
       setDeletingTodoId(null);
       setError(null);

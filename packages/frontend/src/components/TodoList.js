@@ -2,6 +2,11 @@ import React from 'react';
 import TodoCard from './TodoCard';
 
 function TodoList({ todos, onToggle, onEdit, onDelete, isLoading }) {
+  const hasOverdueItems = todos.some((todo) => {
+    const isCompleted = todo.completed === 1 || todo.completed === true;
+    return Boolean(todo.isOverdue) && !isCompleted;
+  });
+
   if (todos.length === 0) {
     return (
       <div className="todo-list empty-state">
@@ -13,7 +18,7 @@ function TodoList({ todos, onToggle, onEdit, onDelete, isLoading }) {
   }
 
   return (
-    <div className="todo-list">
+    <div className={`todo-list ${hasOverdueItems ? 'has-overdue-items' : ''}`}>
       {todos.map((todo) => (
         <TodoCard
           key={todo.id}

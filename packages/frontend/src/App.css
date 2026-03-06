@@ -352,6 +352,13 @@ p {
   min-width: 0;
 }
 
+.todo-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  justify-content: space-between;
+}
+
 .todo-title {
   margin: 0;
   font-size: 16px;
@@ -364,6 +371,32 @@ p {
   margin: 4px 0 0 0;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.todo-due-date-overdue {
+  color: var(--overdue-text);
+  font-weight: 600;
+}
+
+.todo-overdue-badge {
+  background-color: var(--overdue-badge-bg);
+  color: var(--overdue-badge-text);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.todo-card.overdue {
+  border-color: var(--overdue-border);
+  background-color: var(--overdue-bg);
+}
+
+.todo-list.has-overdue-items .todo-card.overdue {
+  box-shadow: 0 0 0 1px var(--overdue-border), var(--shadow-sm);
 }
 
 .todo-actions {
@@ -555,6 +588,17 @@ p {
 
   .confirm-dialog {
     padding: var(--space-sm);
+  }
+
+  .todo-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .todo-overdue-badge {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }
 

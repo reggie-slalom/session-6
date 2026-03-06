@@ -1,11 +1,24 @@
 import TodoService from '../todoService';
 
+const FIXED_NOW = new Date('2026-03-06T10:00:00');
+
+const overdueFixtures = {
+  // Fixture setup notes for overdue fallback behavior aligned with FIXED_NOW.
+  pastDue: '2026-03-05',
+  dueToday: '2026-03-06',
+  futureDue: '2026-03-07',
+  invalidDueDate: 'not-a-date',
+};
+
 describe('TodoService', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_NOW);
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -24,7 +37,10 @@ describe('TodoService', () => {
       const result = await TodoService.getAllTodos();
 
       expect(global.fetch).toHaveBeenCalledWith('/api/todos');
-      expect(result).toEqual(mockTodos);
+      expect(result).toEqual([
+        { id: 1, title: 'Todo 1', completed: 0, dueDate: null, isOverdue: false },
+        { id: 2, title: 'Todo 2', completed: 1, dueDate: '2025-12-25', isOverdue: false }
+      ]);
     });
 
     it('should throw error when fetch fails', async () => {
@@ -34,6 +50,54 @@ describe('TodoService', () => {
       });
 
       await expect(TodoService.getAllTodos()).rejects.toThrow();
+    });
+
+    it('should keep backend isOverdue when it is a boolean', async () => {
+      const mockTodos = [
+        { id: 1, title: 'From API', completed: 0, dueDate: overdueFixtures.futureDue, isOverdue: true }
+      ];
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockTodos
+      });
+
+      const result = await TodoService.getAllTodos();
+      expect(result[0].isOverdue).toBe(true);
+    });
+
+    it('should compute fallback isOverdue for missing backend field', async () => {
+      const mockTodos = [
+        { id: 1, title: 'Past Due Missing Field', completed: 0, dueDate: overdueFixtures.pastDue },
+        { id: 2, title: 'Due Today Missing Field', completed: 0, dueDate: overdueFixtures.dueToday }
+      ];
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockTodos
+      });
+
+      const result = await TodoService.getAllTodos();
+      expect(result[0].isOverdue).toBe(true);
+      expect(result[1].isOverdue).toBe(false);
+    });
+
+    it('should compute fallback isOverdue for invalid backend field', async () => {
+      const mockTodos = [
+        { id: 1, title: 'Past Due Invalid Flag', completed: 0, dueDate: overdueFixtures.pastDue, isOverdue: 'yes' },
+        { id: 2, title: 'Completed Past Due', completed: 1, dueDate: overdueFixtures.pastDue, isOverdue: null },
+        { id: 3, title: 'Invalid Date', completed: 0, dueDate: overdueFixtures.invalidDueDate, isOverdue: 1 }
+      ];
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockTodos
+      });
+
+      const result = await TodoService.getAllTodos();
+      expect(result[0].isOverdue).toBe(true);
+      expect(result[1].isOverdue).toBe(false);
+      expect(result[2].isOverdue).toBe(false);
     });
   });
 

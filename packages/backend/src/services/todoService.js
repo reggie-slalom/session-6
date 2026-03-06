@@ -3,6 +3,52 @@
  * Business logic for todo operations
  */
 
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const toLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const isValidDateOnly = (value) => {
+  if (typeof value !== 'string' || !DATE_ONLY_PATTERN.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(year, month - 1, day);
+  return (
+    !Number.isNaN(parsed.getTime())
+    && parsed.getFullYear() === year
+    && parsed.getMonth() === month - 1
+    && parsed.getDate() === day
+  );
+};
+
+const isTodoOverdue = (todo, todayKey = toLocalDateKey()) => {
+  if (!todo) {
+    return false;
+  }
+
+  const isCompleted = todo.completed === true || todo.completed === 1;
+  if (isCompleted) {
+    return false;
+  }
+
+  if (!isValidDateOnly(todo.dueDate)) {
+    return false;
+  }
+
+  return todo.dueDate < todayKey;
+};
+
+const addOverdueField = (todo, todayKey = toLocalDateKey()) => ({
+  ...todo,
+  isOverdue: isTodoOverdue(todo, todayKey),
+});
+
 class TodoService {
   constructor(database) {
     this.db = database;
@@ -163,3 +209,6 @@ class TodoService {
 }
 
 module.exports = TodoService;
+module.exports.toLocalDateKey = toLocalDateKey;
+module.exports.isTodoOverdue = isTodoOverdue;
+module.exports.addOverdueField = addOverdueField;

@@ -59,4 +59,27 @@ describe('TodoList Component', () => {
     expect(screen.getAllByLabelText(/Edit/)).toHaveLength(2);
     expect(screen.getAllByLabelText(/Delete/)).toHaveLength(2);
   });
+
+  it('should render overdue indicator only for overdue incomplete items', () => {
+    const overdueTodos = [
+      { ...mockTodos[0], title: 'Overdue Item', completed: 0, isOverdue: true },
+      { ...mockTodos[1], title: 'Completed Item', completed: 1, isOverdue: true }
+    ];
+
+    render(<TodoList todos={overdueTodos} {...mockHandlers} isLoading={false} />);
+
+    expect(screen.getByText('Overdue')).toBeInTheDocument();
+    expect(screen.getByText('Overdue Item')).toBeInTheDocument();
+    expect(screen.getByText('Completed Item')).toBeInTheDocument();
+  });
+
+  it('should apply list-level overdue state class for responsive styling', () => {
+    const overdueTodos = [
+      { ...mockTodos[0], isOverdue: true, completed: 0 },
+      { ...mockTodos[1], isOverdue: false, completed: 0 }
+    ];
+
+    const { container } = render(<TodoList todos={overdueTodos} {...mockHandlers} isLoading={false} />);
+    expect(container.querySelector('.todo-list')).toHaveClass('has-overdue-items');
+  });
 });

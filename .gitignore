@@ -20,3 +20,18 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# General logs and build outputs
+*.log
+dist/
+build/
+
+# Environment files
+.env*
+
+# Editor and OS artifacts
+Thumbs.db
+*.tmp
+*.swp
+.idea/
+.vscode/

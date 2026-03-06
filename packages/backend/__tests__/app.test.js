@@ -1,8 +1,26 @@
 const request = require('supertest');
 const { app, db } = require('../src/app');
 
+const FIXED_NOW = new Date('2026-03-06T10:00:00');
+
+const overdueFixtures = {
+  // Fixture setup notes for overdue behavior: these values are tied to FIXED_NOW.
+  pastDue: '2026-03-05',
+  dueToday: '2026-03-06',
+  futureDue: '2026-03-07',
+  invalidDueDate: 'not-a-date',
+};
+
+const findByTitle = (todos, title) => todos.find((todo) => todo.title === title);
+
 // Close the database connection after all tests
+beforeAll(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(FIXED_NOW);
+});
+
 afterAll(() => {
+  jest.useRealTimers();
   if (db) {
     db.close();
   }
@@ -19,6 +37,8 @@ describe('Todo API Endpoints', () => {
       expect(response.body[0]).toHaveProperty('title');
       expect(response.body[0]).toHaveProperty('completed');
       expect(response.body[0]).toHaveProperty('createdAt');
+      expect(response.body[0]).toHaveProperty('isOverdue');
+      expect(typeof response.body[0].isOverdue).toBe('boolean');
     });
 
     it('should return todos ordered by creation date (newest first)', async () => {
@@ -29,6 +49,33 @@ describe('Todo API Endpoints', () => {
         const secondCreated = new Date(response.body[1].createdAt);
         expect(firstCreated.getTime()).toBeGreaterThanOrEqual(secondCreated.getTime());
       }
+    });
+
+    it('should mark only incomplete past-due todos as overdue', async () => {
+      await request(app).post('/api/todos').send({ title: 'Overdue Incomplete', dueDate: overdueFixtures.pastDue });
+      await request(app).post('/api/todos').send({ title: 'Due Today', dueDate: overdueFixtures.dueToday });
+      await request(app).post('/api/todos').send({ title: 'Future Due', dueDate: overdueFixtures.futureDue });
+      await request(app).post('/api/todos').send({ title: 'Invalid Due Date', dueDate: overdueFixtures.invalidDueDate });
+
+      const completedPastDueCreate = await request(app)
+        .post('/api/todos')
+        .send({ title: 'Overdue Completed', dueDate: overdueFixtures.pastDue });
+      await request(app).patch(`/api/todos/${completedPastDueCreate.body.id}/toggle`);
+
+      const response = await request(app).get('/api/todos');
+      expect(response.status).toBe(200);
+
+      const overdueIncomplete = findByTitle(response.body, 'Overdue Incomplete');
+      const dueToday = findByTitle(response.body, 'Due Today');
+      const futureDue = findByTitle(response.body, 'Future Due');
+      const invalidDueDate = findByTitle(response.body, 'Invalid Due Date');
+      const overdueCompleted = findByTitle(response.body, 'Overdue Completed');
+
+      expect(overdueIncomplete.isOverdue).toBe(true);
+      expect(dueToday.isOverdue).toBe(false);
+      expect(futureDue.isOverdue).toBe(false);
+      expect(invalidDueDate.isOverdue).toBe(false);
+      expect(overdueCompleted.isOverdue).toBe(false);
     });
   });
 
@@ -41,6 +88,7 @@ describe('Todo API Endpoints', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('id', todoId);
       expect(response.body).toHaveProperty('title');
+      expect(response.body).not.toHaveProperty('isOverdue');
     });
 
     it('should return 404 for non-existent todo', async () => {
@@ -53,6 +101,22 @@ describe('Todo API Endpoints', () => {
       const response = await request(app).get('/api/todos/invalid');
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
+    });
+  });
+
+  describe('Overdue edge cases', () => {
+    it('should treat due-today and invalid due dates as not overdue', async () => {
+      await request(app).post('/api/todos').send({ title: 'Edge Due Today', dueDate: overdueFixtures.dueToday });
+      await request(app).post('/api/todos').send({ title: 'Edge Invalid Date', dueDate: overdueFixtures.invalidDueDate });
+
+      const response = await request(app).get('/api/todos');
+      expect(response.status).toBe(200);
+
+      const dueToday = findByTitle(response.body, 'Edge Due Today');
+      const invalidDueDate = findByTitle(response.body, 'Edge Invalid Date');
+
+      expect(dueToday.isOverdue).toBe(false);
+      expect(invalidDueDate.isOverdue).toBe(false);
     });
   });
 

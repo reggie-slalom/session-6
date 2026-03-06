@@ -4,8 +4,55 @@
  */
 
 const API_BASE_URL = '/api';
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 class TodoService {
+  static getLocalDateKey(date = new Date()) {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  static isValidDateOnly(value) {
+    if (typeof value !== 'string' || !DATE_ONLY_PATTERN.test(value)) {
+      return false;
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    const parsed = new Date(year, month - 1, day);
+    return (
+      !Number.isNaN(parsed.getTime())
+      && parsed.getFullYear() === year
+      && parsed.getMonth() === month - 1
+      && parsed.getDate() === day
+    );
+  }
+
+  static computeFallbackOverdue(todo, todayKey = TodoService.getLocalDateKey()) {
+    const isCompleted = todo?.completed === true || todo?.completed === 1;
+    if (isCompleted) {
+      return false;
+    }
+
+    if (!TodoService.isValidDateOnly(todo?.dueDate)) {
+      return false;
+    }
+
+    return todo.dueDate < todayKey;
+  }
+
+  static normalizeTodo(todo) {
+    if (typeof todo?.isOverdue === 'boolean') {
+      return todo;
+    }
+
+    return {
+      ...todo,
+      isOverdue: TodoService.computeFallbackOverdue(todo),
+    };
+  }
+
   /**
    * Get all todos
    * @returns {Promise<Array>} Array of todo objects
@@ -16,7 +63,8 @@ class TodoService {
       if (!response.ok) {
         throw new Error(`Failed to fetch todos: ${response.statusText}`);
       }
-      return await response.json();
+      const todos = await response.json();
+      return todos.map((todo) => TodoService.normalizeTodo(todo));
     } catch (error) {
       console.error('Error fetching todos:', error);
       throw error;
